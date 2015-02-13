@@ -37,9 +37,9 @@ var Model = function() {
 
 		this.mapOptions = {
 				disableDefaultUI: true,
+				panControl: false,
 				center: new google.maps.LatLng(location.lat, location.lng),
-				zoom: this.zoom,
-				draggable: false
+				zoom: this.zoom
 			};
 
 		this.map = new google.maps.Map(document.getElementById('map-canvas'), this.mapOptions);
