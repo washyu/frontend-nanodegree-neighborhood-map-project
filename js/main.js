@@ -64,18 +64,19 @@ var ViewModel = function() {
 	self.myMarkers = ko.observableArray([]);
 
 	self.markerObject = function(markerData) {
-		this.name = markerData.name;
-		this.searchString = markerData.searchString;
+		this.markerData = markerData;
+		this.name = this.markerData.name;
+		this.searchString = this.markerData.searchString;
 		this.hovered = ko.observable(false);
 		this.styleIcon = new StyledIcon(StyledIconTypes.MARKER,{color:"#f00"});
 		this.infoWindow = new google.maps.InfoWindow({
-			content: this.name
+			content: "Loading FourSquare data..."
 		});
 
 		this.marker = new StyledMarker({
 				styleIcon: this.styleIcon,
 				map: self.myMap,
-				position: markerData.latLng,
+				position: this.markerData.latLng,
 				title: this.name,
 				draggable: markerData.draggable
 		});
@@ -91,6 +92,10 @@ var ViewModel = function() {
 		google.maps.event.addListener(this.marker, 'click', function() {
 			self.mouseClick(this);
 		}.bind(this));
+
+		this.getLatLng = function() {
+			return this.markerData.latLng;
+		};
 	};
 
 	self.model.getMarkers().forEach(function(marker){
@@ -101,7 +106,7 @@ var ViewModel = function() {
 		if(!marker.hovered()) {
 			marker.hovered(true);
 		}
-		marker.styleIcon.set("color", "#0f0");
+		marker.styleIcon.set("color", "#5e94ff");
 	};
 
 	self.mouseOut = function(marker) {
@@ -112,11 +117,34 @@ var ViewModel = function() {
 	};
 
 	self.mouseClick = function(marker) {
+		marker.infoWindow.content = self.get4sinfo(marker);
 		marker.infoWindow.open(self.myMap, marker.marker);
 	};
 
 	self.toggleOpen = function() {
 		$("#panel").toggleClass("open");
+	};
+
+	self.get4sinfo = function(marker){
+		var url = 'https://api.foursquare.com/v2/venues/search?'
+		 + 'client_id=JBYUIJHUTG5EH0UGEXNEOF403IAEACBBNLM1TFPL4OC2PBM1'
+		 + '&client_secret=SQT2NBDTODIVCOFWDGKHL1NCUCZ4TN045RR1EXVDUPQGCJGT&v=20130815'
+		 + '&ll=' + marker.getLatLng().lat() + ',' + marker.getLatLng().lng()
+		 + '&query=\'' + marker.name + '\''
+		 + '&limit=1';
+
+		 $.getJSON(url)
+		 	.done(function(response){
+		 		var tempString = '<p>FourSquare Info:<br>';
+		 		var venueObject = response.response.venues[0];
+		 		var venueId = venueObject.id;
+		 		tempString += 'Name: ' + ((venueObject.name !== null && venueObject.name !== undefined) ? venueObject.name : marker.name) + '<br>';
+		 		tempString += 'Phone: ' + ((venueObject.contact.formatedPhone !== null && venueObject.contact.formatedPhone !== undefined) ? venueObject.contact.formatedPhone : 'No Number Listed') + '<br>';
+		 		marker.infoWindow.setContent(tempString);
+		 	})
+		 	.fail(function(){
+		 		marker.infoWindow.setContent('There was an issue getting the FourSquare data.');
+		 	});
 	};
 }
 
